@@ -7,12 +7,13 @@ const (
 )
 
 type AuthorizationInfo struct {
-	UserID         string `json:"userid"`
+	UserID         string `json:"id"`
 	Username       string `json:"username"`
-	IsOrgAdmin     int    `json:"isOrgAdmin"`
-	IsActive       int    `json:"isActive"`
-	OrganizationId string `json:"organization_id"`
-	AppId          string `json:"app_id"`
+	IsOrgAdmin     int    `json:"isorgadmin"`
+	IsActive       int    `json:"isactive"`
+	OrganizationId string `json:"organizationid"`
+	AppId          string `json:"app"`
+	Exp            int    `json:"exp"`
 }
 
 type ClientInfo struct {

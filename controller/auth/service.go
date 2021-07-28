@@ -40,6 +40,7 @@ func (svc authService) Authorize(request models.Request) (*models.AuthorizationI
 		isActive        int
 		organization_id string
 		app_id          string
+		exp             int
 	)
 
 	token, err := svc.parseToken(request.Token)
@@ -116,6 +117,7 @@ func (svc authService) Authorize(request models.Request) (*models.AuthorizationI
 		IsActive:       isActive,
 		OrganizationId: organization_id,
 		AppId:          app_id,
+		Exp:            exp,
 	}, nil
 }
 
@@ -180,6 +182,7 @@ func (svc authService) claimToken(tokenString string) (*models.TokenClaims, erro
 			IsActive:       0,
 			OrganizationId: "0",
 			AppId:          "0",
+			Exp:            0,
 		}, nil
 	}
 
