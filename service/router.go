@@ -34,19 +34,19 @@ type Route struct {
 	rule    *regexp.Regexp
 }
 
-func (svc *Service) Get(path string, handler HandlerFunc) Route {
+func (svc *Service) GET(path string, handler HandlerFunc) Route {
 	return svc.router.register(http.MethodGet, path, handler)
 }
 
-func (svc *Service) Post(path string, handler HandlerFunc) Route {
+func (svc *Service) POST(path string, handler HandlerFunc) Route {
 	return svc.router.register(http.MethodPost, path, handler)
 }
 
-func (svc *Service) Put(path string, handler HandlerFunc) Route {
+func (svc *Service) PUT(path string, handler HandlerFunc) Route {
 	return svc.router.register(http.MethodPut, path, handler)
 }
 
-func (svc *Service) Delete(path string, handler HandlerFunc) Route {
+func (svc *Service) DELETE(path string, handler HandlerFunc) Route {
 	return svc.router.register(http.MethodDelete, path, handler)
 }
 
