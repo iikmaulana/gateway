@@ -40,6 +40,7 @@ type requestContext struct {
 	method     string
 	body       []byte
 	params     map[string]string
+	forms      map[string]string
 	query      map[string]string
 	header     map[string]string
 	authInfo   models.AuthorizationInfo
@@ -131,11 +132,23 @@ func (rc requestContext) Parameters() map[string]string {
 	return rc.params
 }
 
+func (rc *requestContext) PostForm(key string) string {
+	return rc.params[key]
+}
+
+func (rc *requestContext) DefaultPostForm(key string, def string) string {
+	val, ok := rc.params[key]
+	if ok {
+		return val
+	}
+	return def
+}
+
 func (rc requestContext) Query(key string) string {
 	return rc.query[key]
 }
 
-func (rc requestContext) Queryd(key string, def string) string {
+func (rc requestContext) DefaultQuery(key string, def string) string {
 	val, ok := rc.query[key]
 	if ok {
 		return val
