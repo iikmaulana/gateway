@@ -3,12 +3,11 @@ package handler
 import (
 	"encoding/json"
 	"github.com/iikmaulana/gateway/models"
-	"net/http"
-
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"net/http"
 
 	L "github.com/iikmaulana/gateway/libs/helper/logger"
 	"github.com/iikmaulana/gateway/service"
@@ -83,15 +82,76 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 	logger(transformResponseToHTTP(resp, header, w))
 }
 
-func (fwd chiForwarder) notFound(w http.ResponseWriter, r *http.Request) {
+func (fwd chiForwarder) notFound(serviceName string, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
 	w.WriteHeader(http.StatusNotImplemented)
 	logger(json.NewEncoder(w).Encode(models.Response{
 		Response:   http.StatusNotImplemented,
 		Error:      "Layanan tidak terdaftar",
+		Appid:      "",
+		Svcid:      serviceName,
 		Controller: r.RequestURI,
 		Action:     r.Method,
+		Result:     "",
 	}))
+}
+
+func (fwd chiForwarder) responseFromHttp(serviceName string, w http.ResponseWriter, r *http.Response) {
+	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
+
+	var respData models.Response
+
+	if r.StatusCode == 404 {
+		w.WriteHeader(http.StatusNotFound)
+		logger(json.NewEncoder(w).Encode(models.Response{
+			Response:   http.StatusNotFound,
+			Error:      "Page Not Found",
+			Appid:      "",
+			Svcid:      serviceName,
+			Controller: r.Request.URL.Path,
+			Action:     r.Request.Method,
+			Result:     "",
+		}))
+		return
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&respData); err != nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		logger(json.NewEncoder(w).Encode(models.Response{
+			Response:   http.StatusNotImplemented,
+			Error:      "Failed decoder body response HTTP",
+			Appid:      "",
+			Svcid:      "gateway",
+			Controller: "handler",
+			Action:     r.Request.Method,
+			Result:     "",
+		}))
+		return
+	}
+	if respData.Response == 0 {
+		w.WriteHeader(http.StatusNotImplemented)
+		logger(json.NewEncoder(w).Encode(models.Response{
+			Response:   http.StatusNotImplemented,
+			Error:      "Layanan HTTP tidak terdaftar",
+			Appid:      respData.Appid,
+			Svcid:      serviceName,
+			Controller: r.Request.URL.RequestURI(),
+			Action:     r.Request.Method,
+			Result:     "",
+		}))
+		return
+	} else {
+		logger(json.NewEncoder(w).Encode(models.Response{
+			Response:   respData.Response,
+			Error:      respData.Error,
+			Appid:      respData.Appid,
+			Svcid:      respData.Svcid,
+			Controller: respData.Controller,
+			Action:     respData.Action,
+			Result:     respData.Result,
+		}))
+		return
+	}
 }
 
 func (fwd chiForwarder) unauthorized(w http.ResponseWriter, message map[string]string, errs []models.Error) {

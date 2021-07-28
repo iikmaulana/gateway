@@ -11,6 +11,7 @@ import (
 	"github.com/iikmaulana/gateway/service"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 )
@@ -40,7 +41,7 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 
 		serviceName := chi.URLParam(r, "service")
 		for _, each := range fwd.composite {
-			if each.Endpoint() == fmt.Sprintf("/%s", serviceName) {
+			if each.Endpoints() == fmt.Sprintf("/%s", serviceName) {
 				composite = each
 
 				break
@@ -48,7 +49,7 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 		}
 
 		if composite != nil {
-			basePath := composite.Endpoint()
+			basePath := composite.Endpoints()
 			path := r.URL.Path[strings.Index(r.URL.Path, basePath)+len(basePath):]
 			if path == "" {
 				path = "/"
@@ -60,9 +61,31 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 
 			return
-		}
+		} else {
+			baseHttp := os.Getenv(serviceName)
+			if baseHttp != "" {
+				httpReq, err := http.NewRequest(r.Method, baseHttp+r.RequestURI, r.Body)
+				if err != nil {
+					fwd.notFound(serviceName, w, r)
+					return
+				}
 
-		fwd.notFound(w, r)
+				client := &http.Client{}
+				httpReq.Header.Set("Content-Type", "application/json")
+				httpReq.Header.Set("Accept", "application/json")
+				httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.Header.Get("Authorization")))
+
+				resp, err := client.Do(httpReq)
+				if err != nil {
+					fwd.notFound(serviceName, w, r)
+					return
+				}
+				fwd.responseFromHttp(serviceName, w, resp)
+				defer resp.Body.Close()
+				return
+			}
+		}
+		fwd.notFound(serviceName, w, r)
 	})
 }
 

@@ -36,13 +36,13 @@ func NewChiForwarder(authService, strictAuthService, privateAuthService auth.Ser
 
 func (fwd *chiForwarder) Mount(composite *service.Composite) {
 	fwd.mutex.Lock()
-	if old, ok := fwd.composite[composite.Key()]; ok {
+	if old, ok := fwd.composite[composite.Keys()]; ok {
 		err := old.Stop()
 		if err != nil {
 			L.Err(serror.NewFromErrorc(err, "while mount service"))
 		}
 	}
 
-	fwd.composite[composite.Key()] = composite
+	fwd.composite[composite.Keys()] = composite
 	fwd.mutex.Unlock()
 }

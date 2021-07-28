@@ -24,10 +24,10 @@ type Forwarder interface {
 
 type Composite struct {
 	packets.ServiceClient
-	key             string
-	endpoint        string
-	connection      *grpc.ClientConn
-	protectedRoutes map[string][]protectedRoute
+	Key             string
+	Endpoint        string
+	Connection      *grpc.ClientConn
+	ProtectedRoutes map[string][]protectedRoute
 }
 
 func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
@@ -103,7 +103,7 @@ func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
 		return nil, errors.New("invalid service checksum")
 	}
 
-	protectedRoutes := make(map[string][]protectedRoute)
+	ProtectedRoutes := make(map[string][]protectedRoute)
 	for method, prs := range res.ProtectedRoutes {
 		for _, route := range prs.Routes {
 			pattern, err := regexp.Compile(route.Pattern)
@@ -118,7 +118,7 @@ func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
 				}
 			}
 
-			protectedRoutes[method] = append(protectedRoutes[method], protectedRoute{
+			ProtectedRoutes[method] = append(ProtectedRoutes[method], protectedRoute{
 				pattern: pattern,
 				method:  route.Method,
 			})
@@ -126,24 +126,24 @@ func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
 	}
 
 	return &Composite{
-		key:             cfg.Key,
-		endpoint:        cfg.gatewayEndpoint,
-		connection:      conn,
+		Key:             cfg.Key,
+		Endpoint:        cfg.gatewayEndpoint,
+		Connection:      conn,
 		ServiceClient:   sc,
-		protectedRoutes: protectedRoutes,
+		ProtectedRoutes: ProtectedRoutes,
 	}, nil
 }
 
-func (c Composite) Key() string {
-	return c.key
+func (c Composite) Keys() string {
+	return c.Key
 }
 
-func (c Composite) Endpoint() string {
-	return c.endpoint
+func (c Composite) Endpoints() string {
+	return c.Endpoint
 }
 
 func (c Composite) Stop() error {
-	err := c.connection.Close()
+	err := c.Connection.Close()
 	if err != nil {
 		return fmt.Errorf("while closing composite connection: %v", err)
 	}
@@ -152,7 +152,7 @@ func (c Composite) Stop() error {
 }
 
 func (c Composite) IsNeedProtection(method string, path string) (bool, bool, bool) {
-	if routes, ok := c.protectedRoutes[method]; ok {
+	if routes, ok := c.ProtectedRoutes[method]; ok {
 		for _, route := range routes {
 			if route.pattern.MatchString(path) {
 				switch route.method {
