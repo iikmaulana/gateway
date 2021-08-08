@@ -6,8 +6,10 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/iikmaulana/gateway/models"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 
 	qs "github.com/derekstavis/go-qs"
@@ -40,7 +42,7 @@ type requestContext struct {
 	method     string
 	body       []byte
 	params     map[string]string
-	forms      map[string]string
+	forms      string
 	query      map[string]string
 	header     map[string]string
 	authInfo   models.AuthorizationInfo
@@ -132,14 +134,71 @@ func (rc requestContext) Parameters() map[string]string {
 	return rc.params
 }
 
-func (rc *requestContext) PostForm(key string) string {
-	return rc.params[key]
+func (rc requestContext) PostForm(key string) string {
+
+	stringReader := strings.NewReader(string(rc.RawBody()))
+	stringReadCloser := ioutil.NopCloser(stringReader)
+
+	contentType := rc.Header("X-Content-Type")
+	if contentType == "" {
+		contentType = rc.Header("Content-Type")
+	}
+
+	req := &http.Request{
+		Method: rc.Method(),
+		Header: map[string][]string{
+			"Content-Type": []string{contentType},
+		},
+		Body: stringReadCloser,
+	}
+
+	req.ParseMultipartForm(0)
+	for k, v := range req.Form {
+		re := regexp.MustCompile("([a-z_]+)" + "(\\[([a-z0-9_]+)\\])?")
+		matches := re.FindStringSubmatch(k)
+
+		if len(matches) >= 4 {
+			if matches[2] == "" {
+				if k == key {
+					return v[0]
+				}
+				continue
+			}
+		}
+	}
+	return ""
 }
 
-func (rc *requestContext) DefaultPostForm(key string, def string) string {
-	val, ok := rc.params[key]
-	if ok {
-		return val
+func (rc requestContext) DefaultPostForm(key string, def string) string {
+	stringReader := strings.NewReader(string(rc.RawBody()))
+	stringReadCloser := ioutil.NopCloser(stringReader)
+
+	contentType := rc.Header("X-Content-Type")
+	if contentType == "" {
+		contentType = rc.Header("Content-Type")
+	}
+
+	req := &http.Request{
+		Method: rc.Method(),
+		Header: map[string][]string{
+			"Content-Type": []string{contentType},
+		},
+		Body: stringReadCloser,
+	}
+
+	req.ParseMultipartForm(0)
+	for k, v := range req.Form {
+		re := regexp.MustCompile("([a-z_]+)" + "(\\[([a-z0-9_]+)\\])?")
+		matches := re.FindStringSubmatch(k)
+
+		if len(matches) >= 4 {
+			if matches[2] == "" {
+				if k == key {
+					return v[0]
+				}
+				continue
+			}
+		}
 	}
 	return def
 }

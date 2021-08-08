@@ -71,9 +71,7 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 				}
 
 				client := &http.Client{}
-				httpReq.Header.Set("Content-Type", "application/json")
-				httpReq.Header.Set("Accept", "application/json")
-				httpReq.Header.Set("Authorization", fmt.Sprintf("Bearer %s", r.Header.Get("Authorization")))
+				httpReq.Header = r.Header
 
 				resp, err := client.Do(httpReq)
 				if err != nil {
