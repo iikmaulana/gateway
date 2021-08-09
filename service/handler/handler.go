@@ -7,7 +7,10 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"io/ioutil"
+	"log"
 	"net/http"
+	"strings"
 
 	L "github.com/iikmaulana/gateway/libs/helper/logger"
 	"github.com/iikmaulana/gateway/service"
@@ -36,6 +39,39 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 	var header metadata.MD
 
 	composite := r.Context().Value(models.ServiceContextValueKey).(*service.Composite)
+
+	if composite.Connection == nil && composite.ServiceClient == nil {
+		basePath := composite.Endpoints()
+		path := r.RequestURI[strings.Index(r.RequestURI, basePath)+len(basePath):]
+		baseHttp := "http://" + composite.Url + composite.Endpoint + path
+		if baseHttp != "" {
+			httpReq, err := http.NewRequest(r.Method, baseHttp, r.Body)
+			if err != nil {
+				fwd.notFound(composite.Key, w, r)
+				return
+			}
+
+			client := &http.Client{}
+			httpReq.Header = r.Header
+
+			resp, err := client.Do(httpReq)
+			if err != nil {
+				fwd.notFound(composite.Key, w, r)
+				return
+			}
+
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			fwd.responseFromHttp(composite.Key, w, body)
+			defer resp.Body.Close()
+
+			return
+		}
+	}
+
 	ctx, req, err := transformRequestFromHttp(r)
 	if err != nil {
 		w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
@@ -96,62 +132,18 @@ func (fwd chiForwarder) notFound(serviceName string, w http.ResponseWriter, r *h
 	}))
 }
 
-func (fwd chiForwarder) responseFromHttp(serviceName string, w http.ResponseWriter, r *http.Response) {
+func (fwd chiForwarder) responseFromHttp(serviceName string, w http.ResponseWriter, r []byte) {
 	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
 
-	var respData models.Response
-
-	if r.StatusCode == 404 {
-		w.WriteHeader(http.StatusNotFound)
-		logger(json.NewEncoder(w).Encode(models.Response{
-			Response:   http.StatusNotFound,
-			Error:      "Page Not Found",
-			Appid:      "",
-			Svcid:      serviceName,
-			Controller: r.Request.URL.Path,
-			Action:     r.Request.Method,
-			Result:     "",
-		}))
-		return
+	asd := models.Response{}
+	if err := json.Unmarshal(r, &asd); err != nil {
+		panic(err)
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&respData); err != nil {
-		w.WriteHeader(http.StatusNotImplemented)
-		logger(json.NewEncoder(w).Encode(models.Response{
-			Response:   http.StatusNotImplemented,
-			Error:      "Failed decoder body response HTTP",
-			Appid:      "",
-			Svcid:      "gateway",
-			Controller: "handler",
-			Action:     r.Request.Method,
-			Result:     "",
-		}))
-		return
-	}
-	if respData.Response == 0 {
-		w.WriteHeader(http.StatusNotImplemented)
-		logger(json.NewEncoder(w).Encode(models.Response{
-			Response:   http.StatusNotImplemented,
-			Error:      "Layanan HTTP tidak terdaftar",
-			Appid:      respData.Appid,
-			Svcid:      serviceName,
-			Controller: r.Request.URL.RequestURI(),
-			Action:     r.Request.Method,
-			Result:     "",
-		}))
-		return
-	} else {
-		logger(json.NewEncoder(w).Encode(models.Response{
-			Response:   respData.Response,
-			Error:      respData.Error,
-			Appid:      respData.Appid,
-			Svcid:      respData.Svcid,
-			Controller: respData.Controller,
-			Action:     respData.Action,
-			Result:     respData.Result,
-		}))
-		return
-	}
+	w.WriteHeader(http.StatusNotFound)
+	w.Write(r)
+	return
+
 }
 
 func (fwd chiForwarder) unauthorized(w http.ResponseWriter, message map[string]string, errs []models.Error) {
