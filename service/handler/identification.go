@@ -61,14 +61,8 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 
 			return
-		} else {
-			baseHttp := os.Getenv(serviceName)
-			if baseHttp != "" {
-				httpReq, err := http.NewRequest(r.Method, baseHttp+r.RequestURI, r.Body)
-				if err != nil {
-					fwd.notFound(serviceName, w, r)
-					return
-				}
+
+		}
 
 				client := &http.Client{}
 				httpReq.Header = r.Header

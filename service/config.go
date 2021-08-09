@@ -46,6 +46,7 @@ type jsonConfig struct {
 	Key             string `json:"key"`
 	Name            string `json:"name"`
 	Namespace       string `json:"namespace"`
+	TypeConn        string `json:"typeconn"`
 	GatewayEndpoint string `json:"gateway_endpoint"`
 }
 
@@ -56,6 +57,7 @@ func (cfg Config) MarshalJSON() ([]byte, error) {
 		Key:             cfg.Key,
 		Name:            cfg.Name,
 		Namespace:       cfg.Namespace,
+		TypeConn:        cfg.TypeConn,
 		GatewayEndpoint: cfg.gatewayEndpoint,
 	}
 
@@ -75,6 +77,7 @@ func (cfg *Config) UnmarshalJSON(v []byte) error {
 	cfg.Key = tmp.Key
 	cfg.Name = tmp.Name
 	cfg.Namespace = tmp.Namespace
+	cfg.TypeConn = tmp.TypeConn
 	cfg.gatewayEndpoint = tmp.GatewayEndpoint
 
 	return nil
@@ -100,6 +103,7 @@ func (cfg Config) checksum() string {
 		cfg.Port,
 		cfg.Key,
 		strings.ToLower(cfg.Namespace),
+		strings.ToLower(cfg.TypeConn),
 		strings.ToLower(strings.Replace(cfg.Name, " ", "", -1)),
 		strings.Trim(cfg.gatewayEndpoint, "/"),
 	)))
