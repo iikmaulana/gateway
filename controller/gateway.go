@@ -72,7 +72,9 @@ func (g *Gateway) Open() error {
 				}
 
 				logger.Infof("service %s successful registered.", cfg.Key)
-				fwd.Mount(c)
+				if cfg.TypeConn != "http" {
+					fwd.Mount(c)
+				}
 			}(cfg)
 		}
 	}(ch, g.fwd)

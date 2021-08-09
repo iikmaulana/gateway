@@ -43,7 +43,7 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 	if composite.Connection == nil && composite.ServiceClient == nil {
 		basePath := composite.Endpoints()
 		path := r.RequestURI[strings.Index(r.RequestURI, basePath)+len(basePath):]
-		baseHttp := "http://" + composite.Url + composite.Endpoint + path
+		baseHttp := "http://" + composite.Url + path
 		if baseHttp != "" {
 			httpReq, err := http.NewRequest(r.Method, baseHttp, r.Body)
 			if err != nil {
@@ -56,7 +56,16 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 
 			resp, err := client.Do(httpReq)
 			if err != nil {
-				fwd.notFound(composite.Key, w, r)
+				w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
+				w.WriteHeader(http.StatusInternalServerError)
+				logger(json.NewEncoder(w).Encode(models.Response{
+					Response:   http.StatusInternalServerError,
+					Error:      "Layanan tidak dapat diakses",
+					Controller: baseHttp,
+					Action:     r.Method,
+					Result:     "",
+				}))
+
 				return
 			}
 
@@ -81,6 +90,7 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 			Error:      err.Error(),
 			Controller: r.RequestURI,
 			Action:     r.Method,
+			Result:     "",
 		}))
 
 		return
@@ -109,6 +119,7 @@ func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
 			Error:      err.Error(),
 			Controller: r.RequestURI,
 			Action:     r.Method,
+			Result:     "",
 		}))
 
 		return
@@ -135,12 +146,12 @@ func (fwd chiForwarder) notFound(serviceName string, w http.ResponseWriter, r *h
 func (fwd chiForwarder) responseFromHttp(serviceName string, w http.ResponseWriter, r []byte) {
 	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
 
-	asd := models.Response{}
-	if err := json.Unmarshal(r, &asd); err != nil {
+	res := models.Response{}
+	if err := json.Unmarshal(r, &res); err != nil {
 		panic(err)
 	}
 
-	w.WriteHeader(http.StatusNotFound)
+	w.WriteHeader(res.Response)
 	w.Write(r)
 	return
 
@@ -152,5 +163,6 @@ func (fwd chiForwarder) unauthorized(w http.ResponseWriter, message map[string]s
 	logger(json.NewEncoder(w).Encode(models.Response{
 		Response: http.StatusUnauthorized,
 		Error:    message["id"],
+		Result:   "",
 	}))
 }
