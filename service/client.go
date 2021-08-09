@@ -27,11 +27,25 @@ type Composite struct {
 	Key             string
 	Endpoint        string
 	Connection      *grpc.ClientConn
+	Url             string
 	ProtectedRoutes map[string][]protectedRoute
 }
 
 func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
 	connURL := resolv.GenerateURL(cfg.Host, helper.IntToString(cfg.Port))
+
+	if cfg.TypeConn == "http" {
+		logger.Infof("connecting http composite %s(%s)", cfg.Key, connURL)
+
+		return &Composite{
+			Key:             cfg.Key,
+			Endpoint:        cfg.gatewayEndpoint,
+			Connection:      nil,
+			Url:             connURL,
+			ServiceClient:   nil,
+			ProtectedRoutes: nil,
+		}, nil
+	}
 
 	logger.Infof("connecting gRPC composite %s(%s)", cfg.Key, connURL)
 
@@ -129,6 +143,7 @@ func NewComposite(resolv resolver.Resolver, cfg Config) (*Composite, error) {
 		Key:             cfg.Key,
 		Endpoint:        cfg.gatewayEndpoint,
 		Connection:      conn,
+		Url:             "",
 		ServiceClient:   sc,
 		ProtectedRoutes: ProtectedRoutes,
 	}, nil

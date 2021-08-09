@@ -10,6 +10,7 @@ type ServerConfig struct {
 	Key       string
 	Name      string
 	Namespace string
+	TypeConn  string
 }
 
 func NewServer(cfg ServerConfig, reg *Registry) (*service.Server, error) {
@@ -19,5 +20,17 @@ func NewServer(cfg ServerConfig, reg *Registry) (*service.Server, error) {
 		Key:       cfg.Key,
 		Name:      cfg.Name,
 		Namespace: cfg.Namespace,
+		TypeConn:  cfg.TypeConn,
+	}, reg.writer)
+}
+
+func NewServerHttp(cfg ServerConfig, reg *Registry) (*service.Server, error) {
+	return service.NewServerHttp(service.Config{
+		Host:      cfg.Host,
+		Port:      cfg.Port,
+		Key:       cfg.Key,
+		Name:      cfg.Name,
+		Namespace: cfg.Namespace,
+		TypeConn:  cfg.TypeConn,
 	}, reg.writer)
 }

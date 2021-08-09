@@ -35,6 +35,14 @@ func NewServer(cfg Config, reg RegistryWriter) (*Server, error) {
 	}, nil
 }
 
+func NewServerHttp(cfg Config, reg RegistryWriter) (*Server, error) {
+	return &Server{
+		cfg:      cfg,
+		instance: grpc.NewServer(grpc.UnaryInterceptor(apmgrpc.NewUnaryServerInterceptor(apmgrpc.WithRecovery()))),
+		reg:      reg,
+	}, nil
+}
+
 func (svr *Server) AsGatewayService(baseEndpoint string) *Service {
 	svr.cfg.gatewayEndpoint = baseEndpoint
 	svc := &Service{
@@ -73,6 +81,23 @@ func (svr Server) Start() error {
 
 	logger.Infof("service is listening on %s.", fmt.Sprintf("%s:%d", svr.cfg.Host, svr.cfg.Port))
 	return svr.instance.Serve(svr.listener)
+}
+
+func (svr Server) Write() error {
+	err := svr.reg.Write(svr.cfg)
+	if err != nil {
+		return fmt.Errorf("while writing controller: %v", err)
+	}
+
+	if svr.cfg.HasGatewayEndpoint() {
+		logger.Infof("send notify to gateway with controller %v", svr.cfg)
+		err := svr.reg.Publish(svr.cfg)
+		if err != nil {
+			return fmt.Errorf("while publishing controller: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (svr Server) Stop() error {
