@@ -37,6 +37,7 @@ type Config struct {
 	Key             string
 	Name            string
 	Namespace       string
+	TypeConn        string
 	gatewayEndpoint string
 }
 

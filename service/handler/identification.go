@@ -11,7 +11,6 @@ import (
 	"github.com/iikmaulana/gateway/service"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -61,22 +60,8 @@ func (fwd chiForwarder) serviceIdentification(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 
 			return
-
 		}
 
-				client := &http.Client{}
-				httpReq.Header = r.Header
-
-				resp, err := client.Do(httpReq)
-				if err != nil {
-					fwd.notFound(serviceName, w, r)
-					return
-				}
-				fwd.responseFromHttp(serviceName, w, resp)
-				defer resp.Body.Close()
-				return
-			}
-		}
 		fwd.notFound(serviceName, w, r)
 	})
 }
