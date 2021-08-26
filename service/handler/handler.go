@@ -25,14 +25,8 @@ func logger(err error) {
 func (fwd chiForwarder) hello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
 
-	logger(json.NewEncoder(w).Encode(models.Response{
-		Response:   http.StatusOK,
-		Controller: r.RequestURI,
-		Action:     r.Method,
-		Result: map[string]interface{}{
-			"id": "Selamat datang di API",
-		},
-	}))
+	w.WriteHeader(http.StatusOK)
+	logger(json.NewEncoder(w).Encode(""))
 }
 
 func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
