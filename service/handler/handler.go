@@ -26,7 +26,7 @@ func (fwd chiForwarder) hello(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(models.ContentTypeHeaderKey, models.ContentTypeValueJSON)
 
 	w.WriteHeader(http.StatusOK)
-	logger(json.NewEncoder(w).Encode(""))
+
 }
 
 func (fwd chiForwarder) forward(w http.ResponseWriter, r *http.Request) {
